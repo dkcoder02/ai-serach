@@ -6,7 +6,7 @@ import createEmbedding from '@/helpers/createEmbedding';
 
 export async function POST(request: NextRequest) {
   await dbConnect();
-  // await createEmbedding();
+  await createEmbedding();
 
   try {
     const { query } = await request.json();
