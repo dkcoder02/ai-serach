@@ -6,33 +6,35 @@ import createEmbedding from '@/helpers/createEmbedding';
 
 export async function POST(request: NextRequest) {
   await dbConnect();
-  await createEmbedding();
-
-
-  console.log("go next")
+  // await createEmbedding();
 
   try {
     const { query } = await request.json();
 
-    console.log('query', query);
-
-
     const inference = new HfInference(process.env.HF_API_KEY);
-    const response = await inference.featureExtraction({
-      model: 'mistralai/mistral-7b-instruct',
+    const response: any = await inference.featureExtraction({
+      model: 'sentence-transformers/all-MiniLM-L6-v2',
       inputs: query,
     });
-    const queryVector = response.data;
+
+    const queryVector = response;
 
     const results = await SearchModel.aggregate([
       {
-        $match: {
+        $vectorSearch: {
+          index: "vector_index",
           queryVector: queryVector,
-          path: 'embedding',
-          numCandidates: 100,
-          limit: 5,
-        },
+          numCandidates: 150,
+          path: "embedding",
+          limit: 10
+        }
       },
+      {
+        $project: {
+          _id: 1,
+          text: 1,
+        }
+      }
     ]);
 
     return Response.json(
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
+    console.log("Error", error)
     return Response.json(
       {
         success: false,
